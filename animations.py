@@ -1,10 +1,15 @@
 import os
 import shutil
+from math import cos, sin
 from pathlib import Path
 
 import pygame
 
 frame_dir = Path(__file__).parent / "frames"
+
+
+def rotate(x, y, angle, ox=0, oy=0):
+    return ox + cos(angle) * (x - ox) - sin(angle) * (y - oy), oy + sin(angle) * (x - ox) + cos(angle) * (y - oy)
 
 
 class Animation:
@@ -39,16 +44,26 @@ class Animation:
     def render(self):
         yield
 
+    def handle_events(self) -> bool:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return False
+            if event.type == pygame.KEYDOWN and event.key in [pygame.K_ESCAPE, pygame.K_q]:
+                return False
+
+        return True
+
     def run(self):
         self.init()
         for _ in self.render():
             self.frame()
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    return
-                if event.type == pygame.KEYDOWN and event.key in [pygame.K_ESCAPE, pygame.K_q]:
-                    return
+            if not self.handle_events():
+                return
 
         if self.record:
             os.system(f"convert -delay {100 / self.fps:.3} -loop 0 {frame_dir}/frame_*.png {self.name}.gif")
-            pygame.quit()
+            return
+
+        while self.handle_events():
+            pygame.display.update()
+            pygame.time.delay(200)
